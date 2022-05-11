@@ -1,4 +1,6 @@
 require File.expand_path("../test_helper", File.dirname(__FILE__))
+require "rails_erd/diagram/graphviz"
+require "rails_erd/diagram/mermaid"
 
 class RakeTaskTest < ActiveSupport::TestCase
   include ActiveSupport::Testing::Isolation
@@ -32,13 +34,24 @@ class RakeTaskTest < ActiveSupport::TestCase
   end
 
   # Diagram generation =======================================================
-  test "generate task should create output based on domain model" do
+  test "generate task should create output based on domain model with graphviz by default" do
     create_simple_domain
 
-    Diagram.any_instance.expects(:save)
+    RailsERD::Diagram::Graphviz.any_instance.expects(:save)
+    Rake::Task["erd:options"].execute
     Rake::Task["erd:generate"].execute
   end
 
+  test "generate task should create output based on domain model with mermaid if specified" do
+    create_simple_domain
+
+    ENV["generator"] = "mermaid"
+    RailsERD::Diagram::Mermaid.any_instance.expects(:save)
+    Rake::Task["erd:options"].execute
+    Rake::Task["erd:generate"].execute
+  end
+
+  
   test "generate task should not create output if there are no connected models" do
     Rake::Task["erd:generate"].execute rescue nil
     assert !File.exist?("erd.dot")
@@ -184,6 +197,13 @@ Error occurred while loading application: FooBar (RuntimeError)
     ENV["only_recursion_depth"] = "test"
     Rake::Task["erd:options"].execute
     assert_equal :test, RailsERD.options.only_recursion_depth
+  end
+
+
+  test "options task sets generator type" do
+    ENV["generator"] = "mermaid"
+    Rake::Task["erd:options"].execute
+    assert_equal :mermaid, RailsERD.options.generator
   end
 
   test "options task should set single parameter to only as array xxx" do
