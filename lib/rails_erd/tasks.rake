@@ -5,7 +5,7 @@ def say(message)
 end
 
 namespace :erd do
-  task :check_dependencies do
+  task :check_dependencies do    
     include GraphViz::Utils
     unless find_executable("dot", nil)
       raise "Unable to find GraphViz's \"dot\" executable. Please " \
@@ -54,11 +54,16 @@ namespace :erd do
     raise "Active Record was not loaded." unless defined? ActiveRecord
   end
 
-  task :generate => [:check_dependencies, :options, :load_models] do
+  task :generate => [:options, :check_dependencies, :load_models] do
     say "Generating Entity-Relationship Diagram for #{ActiveRecord::Base.descendants.length} models..."
 
-    require "rails_erd/diagram/graphviz"
-    file = RailsERD::Diagram::Graphviz.create
+    file = nil
+    if RailsERD.options.generator == :mermaid
+      file = RailsERD::Diagram::Mermaid.create
+    else
+      require "rails_erd/diagram/graphviz"
+      file = RailsERD::Diagram::Graphviz.create
+    end
 
     say "Done! Saved diagram to #{file}."
   end

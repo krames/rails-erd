@@ -1,10 +1,15 @@
 require "rails_erd"
 require "choice"
 
-Choice.options do
+Choice.options do  
   separator ""
   separator "Diagram options:"
 
+  option :engine do
+    long "--engine=ENGINE"
+    desc "Engine to use (graphviz or mermaid). Defaults to graphviz."
+  end
+  
   option :title do
     long "--title=TITLE"
     desc "Replace default diagram title with a custom one."
@@ -158,8 +163,8 @@ module RailsERD
     end
 
     def initialize(path, options)
-      @path, @options = path, options
-      require "rails_erd/diagram/graphviz"
+      @path, @options = path, options      
+      require "rails_erd/diagram/graphviz" if options.generator != :mermaid
     end
 
     def start
@@ -188,9 +193,18 @@ module RailsERD
     rescue TypeError
     end
 
+    def generator
+      if options.generator == :mermaid
+        RailsERD::Diagram::Mermaid
+      else
+        RailsERD::Diagram::Graphviz
+      end
+    end
+
     def create_diagram
       $stderr.puts "Generating entity-relationship diagram for #{ActiveRecord::Base.descendants.length} models..."
-      file = RailsERD::Diagram::Graphviz.create(options)
+
+      file = generator.create(options)
       $stderr.puts "Diagram saved to '#{file}'."
       `open #{file}` if options[:open]
     end
